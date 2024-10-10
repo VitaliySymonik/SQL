@@ -13,12 +13,25 @@ CREATE OR REPLACE PACKAGE log_util IS
         p_commission_pct IN VARCHAR2 DEFAULT NULL,
         p_manager_id     IN NUMBER,
         p_department_id  IN NUMBER DEFAULT 100);
+     PROCEDURE check_business_time;
+     PROCEDURE fire_an_employee(p_employee_id IN NUMBER);
+     PROCEDURE change_attribute_employee (
+        p_employee_id      IN NUMBER,
+        p_first_name       IN VARCHAR2 DEFAULT NULL,
+        p_last_name        IN VARCHAR2 DEFAULT NULL,
+        p_email            IN VARCHAR2 DEFAULT NULL,
+        p_phone_number     IN VARCHAR2 DEFAULT NULL,
+        p_job_id           IN VARCHAR2 DEFAULT NULL,
+        p_salary           IN NUMBER DEFAULT NULL,
+        p_commission_pct   IN VARCHAR2 DEFAULT NULL,
+        p_manager_id       IN NUMBER DEFAULT NULL,
+        p_department_id    IN NUMBER DEFAULT NULL);
 END log_util;
 /
 
 CREATE OR REPLACE PACKAGE BODY log_util IS
 
-    --Процедура to_log
+    --PROCEDURE to_log
     PROCEDURE to_log(p_appl_proc IN VARCHAR2, p_message IN VARCHAR2) IS
         PRAGMA autonomous_transaction;
     BEGIN
@@ -27,7 +40,7 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
         COMMIT;
     END to_log;
 
-    -- Процедура log_start
+    --PROCEDURE log_start
     PROCEDURE log_start(p_proc_name IN VARCHAR2, p_text IN VARCHAR2 DEFAULT NULL) IS
         v_text VARCHAR2(5000);
     BEGIN
@@ -40,7 +53,7 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
         to_log(p_appl_proc => p_proc_name, p_message => v_text);
     END log_start;
 
-    -- Процедура log_finish
+    --PROCEDURE log_finish
     PROCEDURE log_finish(p_proc_name IN VARCHAR2, p_text IN VARCHAR2 DEFAULT NULL) IS
         v_text VARCHAR2(5000);
     BEGIN
@@ -53,7 +66,7 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
         to_log(p_appl_proc => p_proc_name, p_message => v_text);
     END log_finish;
 
-    -- Процедура log_error
+    --PROCEDURE log_error
     PROCEDURE log_error(p_proc_name IN VARCHAR2, p_sqlerrm IN VARCHAR2, p_text IN VARCHAR2 DEFAULT NULL) IS
         v_text VARCHAR2(5000);
     BEGIN
@@ -77,7 +90,7 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
     p_commission_pct IN VARCHAR2 DEFAULT NULL,
     p_manager_id     IN NUMBER,
     p_department_id  IN NUMBER DEFAULT 100
-) IS
+    ) IS
     v_max_employee_id NUMBER;
     v_min_salary      NUMBER;
     v_max_salary      NUMBER;
@@ -85,11 +98,12 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
     v_job_title       VARCHAR2(100);
     v_work_time       VARCHAR2(100);
     v_error_message   VARCHAR2(1000);
-BEGIN
-    -- Виклик процедури логування початку
+    BEGIN
+      
+    --Виклик log_start
     log_util.log_start(p_proc_name => 'add_employee');
 
-    -- Перевірка наявності p_job_id в таблиці jobs
+    --Перевірка p_job_id
     BEGIN
         SELECT job_title, min_salary, max_salary
         INTO v_job_title, v_min_salary, v_max_salary
@@ -101,7 +115,7 @@ BEGIN
             RAISE_APPLICATION_ERROR(-20001, 'Введено неіснуючий код посади');
     END;
 
-    -- Перевірка наявності p_department_id в таблиці departments
+    --Перевірка p_department_id
     BEGIN
         SELECT department_name
         INTO v_department_name
@@ -113,42 +127,233 @@ BEGIN
             RAISE_APPLICATION_ERROR(-20002, 'Введено неіснуючий ідентифікатор відділу');
     END;
 
-    -- Перевірка відповідності зарплати
+    --Перевірка відповідності ЗП
     IF p_salary < v_min_salary OR p_salary > v_max_salary THEN
         RAISE_APPLICATION_ERROR(-20003, 'Зарплата не відповідає діапазону для даної посади');
     END IF;
-    
-    -- Перевірка робочого часу
+
+    --Перевірка бізнс часу
     v_work_time := TO_CHAR(SYSDATE, 'HH24:MI');
     IF TO_CHAR(SYSDATE, 'DY', 'NLS_DATE_LANGUAGE=ENGLISH') IN ('SAT', 'SUN') OR v_work_time NOT BETWEEN '08:00' AND '18:00' THEN
        RAISE_APPLICATION_ERROR(-20004, 'Ви не можете додати нового співробітника в позаробочий час');
     END IF;
 
 
-    -- Знаходження максимального employee_id для нового співробітника
+    --Находим employee_id для нового працвника
     SELECT MAX(employee_id) + 1 INTO v_max_employee_id FROM employees;
 
-    -- Вставка нового співробітника
+    --Вставка нового працівника
     INSERT INTO employees (
-        employee_id, first_name, last_name, email, phone_number, hire_date, job_id, salary, 
+        employee_id, first_name, last_name, email, phone_number, hire_date, job_id, salary,
         commission_pct, manager_id, department_id
     ) VALUES (
-        v_max_employee_id, p_first_name, p_last_name, p_email, p_phone_number, p_hire_date, 
+        v_max_employee_id, p_first_name, p_last_name, p_email, p_phone_number, p_hire_date,
         p_job_id, p_salary, p_commission_pct, p_manager_id, p_department_id
     );
-
-    -- Якщо все пройшло успішно, логуємо успішний результат
-    log_util.log_finish(p_proc_name => 'add_employee', p_text => 'Співробітник доданий: ' || 
+    
+    COMMIT;
+    
+    --Якщо успішно - логуємо
+    log_util.log_finish(p_proc_name => 'add_employee', p_text => 'Співробітник доданий: ' ||
         p_first_name || ' ' || p_last_name || ', Посада: ' || p_job_id || ', Відділ: ' || p_department_id);
 
-EXCEPTION
-    WHEN OTHERS THEN
-        -- Логування помилки в разі будь-яких виключень
+        EXCEPTION
+           WHEN OTHERS THEN
+    --Логуєм помилку
         v_error_message := SQLERRM;
         log_util.log_error(p_proc_name => 'add_employee', p_sqlerrm => v_error_message);
         RAISE;
-END add_employee;
+        END add_employee;
 
+       PROCEDURE check_business_time IS
+        v_work_time VARCHAR2(10);
+        v_day_of_week VARCHAR2(10);
+    BEGIN
+        v_work_time := TO_CHAR(SYSDATE, 'HH24:MI');
+        v_day_of_week := TO_CHAR(SYSDATE, 'DY', 'NLS_DATE_LANGUAGE=ENGLISH');
+
+        IF v_day_of_week IN ('SAT', 'SUN') OR v_work_time NOT BETWEEN '08:00' AND '18:00' THEN
+     --Виклик to_log
+            log_util.to_log(
+                p_appl_proc => 'check_business_time',
+                p_message => 'Ви можете видаляти співробітника лише в робочий час '
+            );
+            RAISE_APPLICATION_ERROR(-20002, 'Ви можете видаляти співробітника лише в робочий час');
+        END IF;
+    END check_business_time;
+
+
+      --PROCEDURE fire_an_employee
+    PROCEDURE fire_an_employee(p_employee_id IN NUMBER) IS
+        v_first_name     VARCHAR2(20);
+        v_last_name      VARCHAR2(25);
+        v_job_id         VARCHAR2(10);
+        v_department_id  NUMBER(4);
+        v_error_message  VARCHAR2(100);
+    BEGIN
+       --Виклик log_start
+        log_util.log_start(p_proc_name => 'fire_an_employee');
+
+      --Перевірка чи є співробітник
+        BEGIN
+            SELECT first_name, last_name, job_id, department_id
+            INTO v_first_name, v_last_name, v_job_id, v_department_id
+            FROM employees
+            WHERE employee_id = p_employee_id;
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                RAISE_APPLICATION_ERROR(-20001, 'Переданий співробітник не існує');
+        END;
+
+       --Перевірка бізнес часу
+        check_business_time;
+
+        --Записуєм в історію якщо співробітник є
+        BEGIN
+            INSERT INTO employees_history (employee_id, first_name, last_name, email, phone_number,
+                                           hire_date, job_id, salary, commission_pct, manager_id,
+                                           department_id, fire_date)
+            SELECT employee_id, first_name, last_name, email, phone_number, hire_date, job_id, salary,
+                   commission_pct, manager_id, department_id, SYSDATE
+            FROM employees
+            WHERE employee_id = p_employee_id;
+
+            -- Видалення співробітника
+            DELETE FROM employees
+            WHERE employee_id = p_employee_id;
+            
+            COMMIT;
+
+            -- Якщо все пройшло успішно, логуємо успішний результат
+            log_util.log_finish(p_proc_name => 'fire_an_employee',
+                                p_text => 'Співробітник ' || v_first_name || ' ' || v_last_name ||
+                                          ', Посада: ' || v_job_id || ', Відділ: ' || v_department_id || ' - успішно звільнений.');
+        EXCEPTION
+            WHEN OTHERS THEN
+                -- Логування помилки в разі будь-яких виключень
+                v_error_message := SQLERRM;
+                log_util.log_error(p_proc_name => 'fire_an_employee', p_sqlerrm => v_error_message);
+                RAISE;
+        END;
+
+    END fire_an_employee;
+
+    PROCEDURE change_attribute_employee (
+        p_employee_id      IN NUMBER,
+        p_first_name       IN VARCHAR2 DEFAULT NULL,
+        p_last_name        IN VARCHAR2 DEFAULT NULL,
+        p_email            IN VARCHAR2 DEFAULT NULL,
+        p_phone_number     IN VARCHAR2 DEFAULT NULL,
+        p_job_id           IN VARCHAR2 DEFAULT NULL,
+        p_salary           IN NUMBER DEFAULT NULL,
+        p_commission_pct   IN VARCHAR2 DEFAULT NULL,
+        p_manager_id       IN NUMBER DEFAULT NULL,
+        p_department_id    IN NUMBER DEFAULT NULL
+    ) IS
+        v_set_param     VARCHAR2(4000);
+        v_first   BOOLEAN := TRUE;
+        v_error_message VARCHAR2(4000);
+    BEGIN
+        --Виклик log_start
+        log_util.log_start(p_proc_name => 'change_attribute_employee');
+
+        -- Перевірка параметрів
+        IF p_first_name IS NULL AND p_last_name IS NULL AND p_email IS NULL AND p_phone_number IS NULL AND
+           p_job_id IS NULL AND p_salary IS NULL AND p_commission_pct IS NULL AND p_manager_id IS NULL AND
+           p_department_id IS NULL THEN
+            log_util.log_finish(p_proc_name => 'change_attribute_employee',
+                                p_text => 'Не передано жодних значень для оновлення');
+            RAISE_APPLICATION_ERROR(-20001, 'Не передано жодних значень для оновлення');
+        END IF;
+
+        v_set_param := 'UPDATE employees SET ';
+
+        
+        IF p_first_name IS NOT NULL THEN
+            v_set_param := v_set_param || 'first_name = ''' || p_first_name || '''';
+            v_first := FALSE;
+        END IF;
+
+        IF p_last_name IS NOT NULL THEN
+            IF NOT v_first THEN
+                v_set_param := v_set_param || ', ';
+            END IF;
+            v_set_param := v_set_param || 'last_name = ''' || p_last_name || '''';
+            v_first := FALSE;
+        END IF;
+
+        IF p_email IS NOT NULL THEN
+            IF NOT v_first THEN
+                v_set_param := v_set_param || ', ';
+            END IF;
+            v_set_param := v_set_param || 'email = ''' || p_email || '''';
+            v_first := FALSE;
+        END IF;
+
+        IF p_phone_number IS NOT NULL THEN
+            IF NOT v_first THEN
+                v_set_param := v_set_param || ', ';
+            END IF;
+            v_set_param := v_set_param || 'phone_number = ''' || p_phone_number || '''';
+            v_first := FALSE;
+        END IF;
+
+        IF p_job_id IS NOT NULL THEN
+            IF NOT v_first THEN
+                v_set_param := v_set_param || ', ';
+            END IF;
+            v_set_param := v_set_param || 'job_id = ''' || p_job_id || '''';
+            v_first := FALSE;
+        END IF;
+
+        IF p_salary IS NOT NULL THEN
+            IF NOT v_first THEN
+                v_set_param := v_set_param || ', ';
+            END IF;
+            v_set_param := v_set_param || 'salary = ' || p_salary;
+            v_first := FALSE;
+        END IF;
+
+        IF p_commission_pct IS NOT NULL THEN
+            IF NOT v_first THEN
+                v_set_param := v_set_param || ', ';
+            END IF;
+            v_set_param := v_set_param || 'commission_pct = ' || p_commission_pct;
+            v_first := FALSE;
+        END IF;
+
+        IF p_manager_id IS NOT NULL THEN
+            IF NOT v_first THEN
+                v_set_param := v_set_param || ', ';
+            END IF;
+            v_set_param := v_set_param || 'manager_id = ' || p_manager_id;
+            v_first := FALSE;
+        END IF;
+
+        IF p_department_id IS NOT NULL THEN
+            IF NOT v_first THEN
+                v_set_param := v_set_param || ', ';
+            END IF;
+            v_set_param := v_set_param || 'department_id = ' || p_department_id;
+        END IF;
+
+        v_set_param := v_set_param || ' WHERE employee_id = ' || p_employee_id;
+
+        --Оновлення працвника
+        BEGIN
+            EXECUTE IMMEDIATE v_set_param;
+            COMMIT;
+
+       log_util.log_finish(p_proc_name => 'change_attribute_employee',
+                                p_text => 'У співробітника ' || p_employee_id || ' успішно оновлені атрибути');
+        EXCEPTION
+            WHEN OTHERS THEN
+                v_error_message := SQLERRM;
+                log_util.log_error(p_proc_name => 'change_attribute_employee', p_sqlerrm => v_error_message);
+                RAISE;
+        END;
+
+    END change_attribute_employee;
 
 END log_util;
 /
