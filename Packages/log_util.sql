@@ -26,5 +26,11 @@ CREATE OR REPLACE PACKAGE log_util IS
         p_commission_pct   IN VARCHAR2 DEFAULT NULL,
         p_manager_id       IN NUMBER DEFAULT NULL,
         p_department_id    IN NUMBER DEFAULT NULL);
+     PROCEDURE copy_table(p_source_scheme  IN VARCHAR2,
+        p_target_scheme  IN VARCHAR2 DEFAULT USER,
+        p_list_table     IN VARCHAR2,
+        p_copy_data      IN BOOLEAN DEFAULT FALSE,
+        po_result        OUT VARCHAR2);
+     PROCEDURE api_nbu_sync;
 END log_util;
 /
