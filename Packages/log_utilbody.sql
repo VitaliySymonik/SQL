@@ -14,7 +14,7 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
         v_text VARCHAR2(5000);
     BEGIN
         IF p_text IS NULL THEN
-            v_text := 'Старт логування, назва процесу = ' || p_proc_name;
+            v_text := 'РЎС‚Р°СЂС‚ Р»РѕРіСѓРІР°РЅРЅСЏ, РЅР°Р·РІР° РїСЂРѕС†РµСЃСѓ = ' || p_proc_name;
         ELSE
             v_text := p_text;
         END IF;
@@ -27,7 +27,7 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
         v_text VARCHAR2(5000);
     BEGIN
         IF p_text IS NULL THEN
-            v_text := 'Завершення логування, назва процесу = ' || p_proc_name;
+            v_text := 'Р—Р°РІРµСЂС€РµРЅРЅСЏ Р»РѕРіСѓРІР°РЅРЅСЏ, РЅР°Р·РІР° РїСЂРѕС†РµСЃСѓ = ' || p_proc_name;
         ELSE
             v_text := p_text;
         END IF;
@@ -40,7 +40,7 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
         v_text VARCHAR2(5000);
     BEGIN
         IF p_text IS NULL THEN
-            v_text := 'В процедурі ' || p_proc_name || ' сталася помилка. ' || p_sqlerrm;
+            v_text := 'Р’ РїСЂРѕС†РµРґСѓСЂС– ' || p_proc_name || ' СЃС‚Р°Р»Р°СЃСЏ РїРѕРјРёР»РєР°. ' || p_sqlerrm;
         ELSE
             v_text := p_text;
         END IF;
@@ -69,10 +69,10 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
     v_error_message   VARCHAR2(1000);
     BEGIN
 
-    --Виклик log_start
+    --Р’РёРєР»РёРє log_start
     log_util.log_start(p_proc_name => 'add_employee');
 
-    --Перевірка p_job_id
+    --РџРµСЂРµРІС–СЂРєР° p_job_id
     BEGIN
         SELECT job_title, min_salary, max_salary
         INTO v_job_title, v_min_salary, v_max_salary
@@ -81,10 +81,10 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
 
     EXCEPTION
         WHEN NO_DATA_FOUND THEN
-            RAISE_APPLICATION_ERROR(-20001, 'Введено неіснуючий код посади');
+            RAISE_APPLICATION_ERROR(-20001, 'Р’РІРµРґРµРЅРѕ РЅРµС–СЃРЅСѓСЋС‡РёР№ РєРѕРґ РїРѕСЃР°РґРё');
     END;
 
-    --Перевірка p_department_id
+    --РџРµСЂРµРІС–СЂРєР° p_department_id
     BEGIN
         SELECT department_name
         INTO v_department_name
@@ -93,25 +93,25 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
 
     EXCEPTION
         WHEN NO_DATA_FOUND THEN
-            RAISE_APPLICATION_ERROR(-20002, 'Введено неіснуючий ідентифікатор відділу');
+            RAISE_APPLICATION_ERROR(-20002, 'Р’РІРµРґРµРЅРѕ РЅРµС–СЃРЅСѓСЋС‡РёР№ С–РґРµРЅС‚РёС„С–РєР°С‚РѕСЂ РІС–РґРґС–Р»Сѓ');
     END;
 
-    --Перевірка відповідності ЗП
+    --РџРµСЂРµРІС–СЂРєР° РІС–РґРїРѕРІС–РґРЅРѕСЃС‚С– Р—Рџ
     IF p_salary < v_min_salary OR p_salary > v_max_salary THEN
-        RAISE_APPLICATION_ERROR(-20003, 'Зарплата не відповідає діапазону для даної посади');
+        RAISE_APPLICATION_ERROR(-20003, 'Р—Р°СЂРїР»Р°С‚Р° РЅРµ РІС–РґРїРѕРІС–РґР°С” РґС–Р°РїР°Р·РѕРЅСѓ РґР»СЏ РґР°РЅРѕС— РїРѕСЃР°РґРё');
     END IF;
 
-    --Перевірка бізнс часу
+    --РџРµСЂРµРІС–СЂРєР° Р±С–Р·РЅСЃ С‡Р°СЃСѓ
     v_work_time := TO_CHAR(SYSDATE, 'HH24:MI');
     IF TO_CHAR(SYSDATE, 'DY', 'NLS_DATE_LANGUAGE=ENGLISH') IN ('SAT', 'SUN') OR v_work_time NOT BETWEEN '08:00' AND '18:00' THEN
-       RAISE_APPLICATION_ERROR(-20004, 'Ви не можете додати нового співробітника в позаробочий час');
+       RAISE_APPLICATION_ERROR(-20004, 'Р’Рё РЅРµ РјРѕР¶РµС‚Рµ РґРѕРґР°С‚Рё РЅРѕРІРѕРіРѕ СЃРїС–РІСЂРѕР±С–С‚РЅРёРєР° РІ РїРѕР·Р°СЂРѕР±РѕС‡РёР№ С‡Р°СЃ');
     END IF;
 
 
-    --Находим employee_id для нового працвника
+    --РќР°С…РѕРґРёРј employee_id РґР»СЏ РЅРѕРІРѕРіРѕ РїСЂР°С†РІРЅРёРєР°
     SELECT MAX(employee_id) + 1 INTO v_max_employee_id FROM employees;
 
-    --Вставка нового працівника
+    --Р’СЃС‚Р°РІРєР° РЅРѕРІРѕРіРѕ РїСЂР°С†С–РІРЅРёРєР°
     INSERT INTO employees (
         employee_id, first_name, last_name, email, phone_number, hire_date, job_id, salary,
         commission_pct, manager_id, department_id
@@ -122,13 +122,13 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
 
     COMMIT;
 
-    --Якщо успішно - логуємо
-    log_util.log_finish(p_proc_name => 'add_employee', p_text => 'Співробітник доданий: ' ||
-        p_first_name || ' ' || p_last_name || ', Посада: ' || p_job_id || ', Відділ: ' || p_department_id);
+    --РЇРєС‰Рѕ СѓСЃРїС–С€РЅРѕ - Р»РѕРіСѓС”РјРѕ
+    log_util.log_finish(p_proc_name => 'add_employee', p_text => 'РЎРїС–РІСЂРѕР±С–С‚РЅРёРє РґРѕРґР°РЅРёР№: ' ||
+        p_first_name || ' ' || p_last_name || ', РџРѕСЃР°РґР°: ' || p_job_id || ', Р’С–РґРґС–Р»: ' || p_department_id);
 
         EXCEPTION
            WHEN OTHERS THEN
-    --Логуєм помилку
+    --Р›РѕРіСѓС”Рј РїРѕРјРёР»РєСѓ
         v_error_message := SQLERRM;
         log_util.log_error(p_proc_name => 'add_employee', p_sqlerrm => v_error_message);
         RAISE;
@@ -142,12 +142,12 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
         v_day_of_week := TO_CHAR(SYSDATE, 'DY', 'NLS_DATE_LANGUAGE=ENGLISH');
 
         IF v_day_of_week IN ('SAT', 'SUN') OR v_work_time NOT BETWEEN '08:00' AND '18:00' THEN
-     --Виклик to_log
+     --Р’РёРєР»РёРє to_log
             log_util.to_log(
                 p_appl_proc => 'check_business_time',
-                p_message => 'Ви можете видаляти співробітника лише в робочий час '
+                p_message => 'Р’Рё РјРѕР¶РµС‚Рµ РІРёРґР°Р»СЏС‚Рё СЃРїС–РІСЂРѕР±С–С‚РЅРёРєР° Р»РёС€Рµ РІ СЂРѕР±РѕС‡РёР№ С‡Р°СЃ '
             );
-            RAISE_APPLICATION_ERROR(-20002, 'Ви можете видаляти співробітника лише в робочий час');
+            RAISE_APPLICATION_ERROR(-20002, 'Р’Рё РјРѕР¶РµС‚Рµ РІРёРґР°Р»СЏС‚Рё СЃРїС–РІСЂРѕР±С–С‚РЅРёРєР° Р»РёС€Рµ РІ СЂРѕР±РѕС‡РёР№ С‡Р°СЃ');
         END IF;
     END check_business_time;
 
@@ -160,10 +160,10 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
         v_department_id  NUMBER(4);
         v_error_message  VARCHAR2(100);
     BEGIN
-       --Виклик log_start
+       --Р’РёРєР»РёРє log_start
         log_util.log_start(p_proc_name => 'fire_an_employee');
 
-      --Перевірка чи є співробітник
+      --РџРµСЂРµРІС–СЂРєР° С‡Рё С” СЃРїС–РІСЂРѕР±С–С‚РЅРёРє
         BEGIN
             SELECT first_name, last_name, job_id, department_id
             INTO v_first_name, v_last_name, v_job_id, v_department_id
@@ -171,13 +171,13 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
             WHERE employee_id = p_employee_id;
         EXCEPTION
             WHEN NO_DATA_FOUND THEN
-                RAISE_APPLICATION_ERROR(-20001, 'Переданий співробітник не існує');
+                RAISE_APPLICATION_ERROR(-20001, 'РџРµСЂРµРґР°РЅРёР№ СЃРїС–РІСЂРѕР±С–С‚РЅРёРє РЅРµ С–СЃРЅСѓС”');
         END;
 
-       --Перевірка бізнес часу
+       --РџРµСЂРµРІС–СЂРєР° Р±С–Р·РЅРµСЃ С‡Р°СЃСѓ
         check_business_time;
 
-        --Записуєм в історію якщо співробітник є
+        --Р—Р°РїРёСЃСѓС”Рј РІ С–СЃС‚РѕСЂС–СЋ СЏРєС‰Рѕ СЃРїС–РІСЂРѕР±С–С‚РЅРёРє С”
         BEGIN
             INSERT INTO employees_history (employee_id, first_name, last_name, email, phone_number,
                                            hire_date, job_id, salary, commission_pct, manager_id,
@@ -187,19 +187,19 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
             FROM employees
             WHERE employee_id = p_employee_id;
 
-            -- Видалення співробітника
+            -- Р’РёРґР°Р»РµРЅРЅСЏ СЃРїС–РІСЂРѕР±С–С‚РЅРёРєР°
             DELETE FROM employees
             WHERE employee_id = p_employee_id;
 
             COMMIT;
 
-            -- Якщо все пройшло успішно, логуємо успішний результат
+            -- РЇРєС‰Рѕ РІСЃРµ РїСЂРѕР№С€Р»Рѕ СѓСЃРїС–С€РЅРѕ, Р»РѕРіСѓС”РјРѕ СѓСЃРїС–С€РЅРёР№ СЂРµР·СѓР»СЊС‚Р°С‚
             log_util.log_finish(p_proc_name => 'fire_an_employee',
-                                p_text => 'Співробітник ' || v_first_name || ' ' || v_last_name ||
-                                          ', Посада: ' || v_job_id || ', Відділ: ' || v_department_id || ' - успішно звільнений.');
+                                p_text => 'РЎРїС–РІСЂРѕР±С–С‚РЅРёРє ' || v_first_name || ' ' || v_last_name ||
+                                          ', РџРѕСЃР°РґР°: ' || v_job_id || ', Р’С–РґРґС–Р»: ' || v_department_id || ' - СѓСЃРїС–С€РЅРѕ Р·РІС–Р»СЊРЅРµРЅРёР№.');
         EXCEPTION
             WHEN OTHERS THEN
-                -- Логування помилки в разі будь-яких виключень
+                -- Р›РѕРіСѓРІР°РЅРЅСЏ РїРѕРјРёР»РєРё РІ СЂР°Р·С– Р±СѓРґСЊ-СЏРєРёС… РІРёРєР»СЋС‡РµРЅСЊ
                 v_error_message := SQLERRM;
                 log_util.log_error(p_proc_name => 'fire_an_employee', p_sqlerrm => v_error_message);
                 RAISE;
@@ -223,16 +223,16 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
         v_first   BOOLEAN := TRUE;
         v_error_message VARCHAR2(4000);
     BEGIN
-        --Виклик log_start
+        --Р’РёРєР»РёРє log_start
         log_util.log_start(p_proc_name => 'change_attribute_employee');
 
-        -- Перевірка параметрів
+        -- РџРµСЂРµРІС–СЂРєР° РїР°СЂР°РјРµС‚СЂС–РІ
         IF p_first_name IS NULL AND p_last_name IS NULL AND p_email IS NULL AND p_phone_number IS NULL AND
            p_job_id IS NULL AND p_salary IS NULL AND p_commission_pct IS NULL AND p_manager_id IS NULL AND
            p_department_id IS NULL THEN
             log_util.log_finish(p_proc_name => 'change_attribute_employee',
-                                p_text => 'Не передано жодних значень для оновлення');
-            RAISE_APPLICATION_ERROR(-20001, 'Не передано жодних значень для оновлення');
+                                p_text => 'РќРµ РїРµСЂРµРґР°РЅРѕ Р¶РѕРґРЅРёС… Р·РЅР°С‡РµРЅСЊ РґР»СЏ РѕРЅРѕРІР»РµРЅРЅСЏ');
+            RAISE_APPLICATION_ERROR(-20001, 'РќРµ РїРµСЂРµРґР°РЅРѕ Р¶РѕРґРЅРёС… Р·РЅР°С‡РµРЅСЊ РґР»СЏ РѕРЅРѕРІР»РµРЅРЅСЏ');
         END IF;
 
         v_set_param := 'UPDATE employees SET ';
@@ -308,13 +308,13 @@ CREATE OR REPLACE PACKAGE BODY log_util IS
 
         v_set_param := v_set_param || ' WHERE employee_id = ' || p_employee_id;
 
-        --Оновлення працвника
+        --РћРЅРѕРІР»РµРЅРЅСЏ РїСЂР°С†РІРЅРёРєР°
         BEGIN
             EXECUTE IMMEDIATE v_set_param;
             COMMIT;
 
        log_util.log_finish(p_proc_name => 'change_attribute_employee',
-                                p_text => 'У співробітника ' || p_employee_id || ' успішно оновлені атрибути');
+                                p_text => 'РЈ СЃРїС–РІСЂРѕР±С–С‚РЅРёРєР° ' || p_employee_id || ' СѓСЃРїС–С€РЅРѕ РѕРЅРѕРІР»РµРЅС– Р°С‚СЂРёР±СѓС‚Рё');
         EXCEPTION
             WHEN OTHERS THEN
                 v_error_message := SQLERRM;
@@ -336,9 +336,9 @@ PROCEDURE copy_table(p_source_scheme  IN VARCHAR2,
 
     BEGIN
 
-    to_log('copy_table', 'Стартування копіювання таблиць '||p_list_table||' з '|| p_source_scheme ||' до '|| p_target_scheme);
+    to_log('copy_table', 'РЎС‚Р°СЂС‚СѓРІР°РЅРЅСЏ РєРѕРїС–СЋРІР°РЅРЅСЏ С‚Р°Р±Р»РёС†СЊ '||p_list_table||' Р· '|| p_source_scheme ||' РґРѕ '|| p_target_scheme);
 
-    -- Перебираємо таблиці
+    -- РџРµСЂРµР±РёСЂР°С”РјРѕ С‚Р°Р±Р»РёС†С–
         FOR cc IN (
             SELECT table_name,
                    'CREATE TABLE ' || p_target_scheme || '.' || table_name || ' (' ||
@@ -367,32 +367,32 @@ PROCEDURE copy_table(p_source_scheme  IN VARCHAR2,
         v_table_name := cc.table_name;
         v_create := cc.ddl_code;
 
-        to_log('copy_table', 'Оброблення таблиці: ' || v_table_name);
+        to_log('copy_table', 'РћР±СЂРѕР±Р»РµРЅРЅСЏ С‚Р°Р±Р»РёС†С–: ' || v_table_name);
 
         EXECUTE IMMEDIATE v_create;
-        to_log('copy_table', 'Таблицю ' || v_table_name || ' успішно додано в схему ' || p_target_scheme);
+        to_log('copy_table', 'РўР°Р±Р»РёС†СЋ ' || v_table_name || ' СѓСЃРїС–С€РЅРѕ РґРѕРґР°РЅРѕ РІ СЃС…РµРјСѓ ' || p_target_scheme);
 
             IF p_copy_data = TRUE THEN
                 v_copy := 'INSERT INTO ' || p_target_scheme || '.' || v_table_name ||
                                  ' SELECT * FROM ' || p_source_scheme || '.' || v_table_name;
                 EXECUTE IMMEDIATE v_copy;
-                to_log('copy_table', 'Дані з таблиці ' || p_source_scheme || '.' || v_table_name || ' успішно додані в ' || p_target_scheme || '.' || v_table_name);
+                to_log('copy_table', 'Р”Р°РЅС– Р· С‚Р°Р±Р»РёС†С– ' || p_source_scheme || '.' || v_table_name || ' СѓСЃРїС–С€РЅРѕ РґРѕРґР°РЅС– РІ ' || p_target_scheme || '.' || v_table_name);
             END IF;
 
         EXCEPTION
             WHEN OTHERS THEN
-                to_log('copy_table', 'Виникла помилка під час копіювання таблиці ' || v_table_name || ': ' || sqlerrm);
+                to_log('copy_table', 'Р’РёРЅРёРєР»Р° РїРѕРјРёР»РєР° РїС–Рґ С‡Р°СЃ РєРѕРїС–СЋРІР°РЅРЅСЏ С‚Р°Р±Р»РёС†С– ' || v_table_name || ': ' || sqlerrm);
                 CONTINUE;
         END;
     END LOOP;
 
-    to_log('copy_table', 'Копіювання таблиць '||p_list_table||' з '||p_source_scheme||' до '||p_target_scheme||' завершено');
-    po_result := 'Таблиці '||p_list_table||' успішно скопійовані з '||p_source_scheme||' до '||p_target_scheme;
+    to_log('copy_table', 'РљРѕРїС–СЋРІР°РЅРЅСЏ С‚Р°Р±Р»РёС†СЊ '||p_list_table||' Р· '||p_source_scheme||' РґРѕ '||p_target_scheme||' Р·Р°РІРµСЂС€РµРЅРѕ');
+    po_result := 'РўР°Р±Р»РёС†С– '||p_list_table||' СѓСЃРїС–С€РЅРѕ СЃРєРѕРїС–Р№РѕРІР°РЅС– Р· '||p_source_scheme||' РґРѕ '||p_target_scheme;
 
     EXCEPTION
         WHEN OTHERS THEN
-            to_log('copy_table', 'Помилка при копіюванні таблиць: ' || sqlerrm);
-            po_result := 'Помилка при копіюванні таблиць: ' || sqlerrm;
+            to_log('copy_table', 'РџРѕРјРёР»РєР° РїСЂРё РєРѕРїС–СЋРІР°РЅРЅС– С‚Р°Р±Р»РёС†СЊ: ' || sqlerrm);
+            po_result := 'РџРѕРјРёР»РєР° РїСЂРё РєРѕРїС–СЋРІР°РЅРЅС– С‚Р°Р±Р»РёС†СЊ: ' || sqlerrm;
 
 END copy_table;
 
@@ -400,7 +400,7 @@ PROCEDURE api_nbu_sync IS
     v_list_cur  VARCHAR2(2000);
     v_err_message    VARCHAR2(1000);
     BEGIN
-    --Список валют
+    --РЎРїРёСЃРѕРє РІР°Р»СЋС‚
     BEGIN
         SELECT value_text
         INTO v_list_cur
@@ -409,17 +409,17 @@ PROCEDURE api_nbu_sync IS
 
     EXCEPTION
         WHEN NO_DATA_FOUND THEN
-            --Викликаємо помилку якшо параметра нема
-            log_util.log_error(p_proc_name => 'api_nbu_sync', p_sqlerrm => 'Параметр list_currencies не знайдено');
-            RAISE_APPLICATION_ERROR(-20001, 'Параметр list_currencies не знайдено');
+            --Р’РёРєР»РёРєР°С”РјРѕ РїРѕРјРёР»РєСѓ СЏРєС€Рѕ РїР°СЂР°РјРµС‚СЂР° РЅРµРјР°
+            log_util.log_error(p_proc_name => 'api_nbu_sync', p_sqlerrm => 'РџР°СЂР°РјРµС‚СЂ list_currencies РЅРµ Р·РЅР°Р№РґРµРЅРѕ');
+            RAISE_APPLICATION_ERROR(-20001, 'РџР°СЂР°РјРµС‚СЂ list_currencies РЅРµ Р·РЅР°Р№РґРµРЅРѕ');
         WHEN OTHERS THEN
-            --Логування помилки
+            --Р›РѕРіСѓРІР°РЅРЅСЏ РїРѕРјРёР»РєРё
             v_err_message := SQLERRM;
             log_util.log_error(p_proc_name => 'api_nbu_sync', p_sqlerrm => v_err_message);
             RAISE;
     END;
 
-    --Цикд списку валют і оновлення табилці
+    --Р¦РёРєРґ СЃРїРёСЃРєСѓ РІР°Р»СЋС‚ С– РѕРЅРѕРІР»РµРЅРЅСЏ С‚Р°Р±РёР»С†С–
     FOR cc IN (SELECT value_list AS curr
                FROM TABLE(util.table_from_list(p_list_val => v_list_cur))) 
     LOOP
@@ -429,12 +429,12 @@ PROCEDURE api_nbu_sync IS
             SELECT r030, txt, rate, cur, exchangedate
             FROM TABLE(util.get_currency(p_currency => cc.curr));
 
-            log_util.log_finish(p_proc_name => 'api_nbu_sync', p_text => 'Курс для валюти ' || cc.curr || ' успішно оновлено.');
+            log_util.log_finish(p_proc_name => 'api_nbu_sync', p_text => 'РљСѓСЂСЃ РґР»СЏ РІР°Р»СЋС‚Рё ' || cc.curr || ' СѓСЃРїС–С€РЅРѕ РѕРЅРѕРІР»РµРЅРѕ.');
 
         EXCEPTION
             WHEN OTHERS THEN
                 v_err_message := SQLERRM;
-                log_util.log_error(p_proc_name => 'api_nbu_sync', p_sqlerrm => 'Помилка для валюти ' || cc.curr || ': ' || v_err_message);
+                log_util.log_error(p_proc_name => 'api_nbu_sync', p_sqlerrm => 'РџРѕРјРёР»РєР° РґР»СЏ РІР°Р»СЋС‚Рё ' || cc.curr || ': ' || v_err_message);
         END;
     END LOOP;
     
